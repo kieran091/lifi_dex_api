@@ -98,7 +98,10 @@ func (e *APIError) Cause() error {
 func parseErrorResponse(errs *Errors) *APIErrorPayload {
 	if errs == nil || len(errs.FilteredOut) == 0 {
 		return &APIErrorPayload{
-			Type: UnknownError,
+			Type:    AmountTooLow,
+			Subtype: USD,
+			Amount:  "1",
+			Message: "amount too low",
 		}
 	}
 	filteredOutReason := errs.FilteredOut[0].Reason
