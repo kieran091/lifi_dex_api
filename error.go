@@ -96,85 +96,99 @@ func (e *APIError) Cause() error {
 }
 
 func parseErrorResponse(errs *Errors) *APIErrorPayload {
-	if errs != nil && len(errs.FilteredOut) > 0 {
-		filteredOutReason := errs.FilteredOut[0].Reason
-
-		if filteredOutReason == multiSignatureErrorMessage {
-			return &APIErrorPayload{
-				Type:    OtherError,
-				Message: filteredOutReason,
-			}
+	if errs == nil || len(errs.FilteredOut) == 0 {
+		return &APIErrorPayload{
+			Type: UnknownError,
 		}
+	}
+	filteredOutReason := errs.FilteredOut[0].Reason
 
-		// check USD amount errors
-		if strings.Contains(filteredOutReason, "USD") {
-			re := regexp.MustCompile(`\b\d+\b`)
-			matches := re.FindAllString(filteredOutReason, -1)
-			if len(matches) > 0 {
-				return &APIErrorPayload{
-					Type:    AmountTooLow,
-					Subtype: USD,
-					Amount:  matches[len(matches)-1],
-					Message: filteredOutReason,
-				}
-			}
+	if filteredOutReason == multiSignatureErrorMessage {
+		return &APIErrorPayload{
+			Type:    OtherError,
+			Message: filteredOutReason,
 		}
+	}
 
-		// check Token amount errors
-		// format: Transferred amount (X) out of acceptable range (min: Y, max: Z)
-		re := regexp.MustCompile(`Transferred amount \((\d+)\) out of acceptable range \(min: (\d+|Infinity), max: (\d+|Infinity)\)`)
-		matches := re.FindStringSubmatch(filteredOutReason)
-		if len(matches) == 4 {
-			transferredAmount := new(big.Int)
-			_, ok := transferredAmount.SetString(matches[1], 10)
-			if ok {
-				var minAmount, maxAmount *big.Int
-
-				// 解析最小值
-				if strings.ToLower(matches[2]) != "infinity" {
-					minAmount = new(big.Int)
-					_, _ = minAmount.SetString(matches[2], 10)
-				}
-
-				// 解析最大值
-				if strings.ToLower(matches[3]) != "infinity" {
-					maxAmount = new(big.Int)
-					_, _ = maxAmount.SetString(matches[3], 10)
-				}
-
-				amount := big.NewInt(0)
-				errorType := UnknownError
-				if minAmount != nil && transferredAmount.Cmp(minAmount) < 0 {
-					errorType = AmountTooLow
-					amount = minAmount
-				} else if maxAmount != nil && transferredAmount.Cmp(maxAmount) > 0 {
-					errorType = AmountTooHigh
-					amount = maxAmount
-				}
-
-				return &APIErrorPayload{
-					Type:    errorType,
-					Subtype: TokenAmount,
-					Amount:  amount.String(),
-					Message: filteredOutReason,
-				}
-			}
-		}
-
-		// check Price impact errors
-		// format: Price impact of (X)% is higher than the max allowed (Y)%
-		re = regexp.MustCompile(`Price impact of (\d+(\.\d+)?)% is higher than the max allowed (\d+(\.\d+)?)%`)
-		matches = re.FindStringSubmatch(filteredOutReason)
+	// check USD amount errors
+	if strings.Contains(filteredOutReason, "USD") {
+		re := regexp.MustCompile(`\b\d+\b`)
+		matches := re.FindAllString(filteredOutReason, -1)
 		if len(matches) > 0 {
 			return &APIErrorPayload{
-				Type:    PriceImpactTooHigh,
-				Subtype: PriceImpact,
-				Amount:  matches[1] + "%",
+				Type:    AmountTooLow,
+				Subtype: USD,
+				Amount:  matches[len(matches)-1],
 				Message: filteredOutReason,
 			}
 		}
 	}
+
+	// check Token amount errors
+	// format: Transferred amount (X) out of acceptable range (min: Y, max: Z)
+	re := regexp.MustCompile(`Transferred amount \((\d+)\) out of acceptable range \(min: (\d+|Infinity), max: (\d+|Infinity)\)`)
+	matches := re.FindStringSubmatch(filteredOutReason)
+	if len(matches) == 4 {
+		transferredAmount := new(big.Int)
+		_, ok := transferredAmount.SetString(matches[1], 10)
+		if ok {
+			var minAmount, maxAmount *big.Int
+
+			// 解析最小值
+			if strings.ToLower(matches[2]) != "infinity" {
+				minAmount = new(big.Int)
+				_, _ = minAmount.SetString(matches[2], 10)
+			}
+
+			// 解析最大值
+			if strings.ToLower(matches[3]) != "infinity" {
+				maxAmount = new(big.Int)
+				_, _ = maxAmount.SetString(matches[3], 10)
+			}
+
+			amount := big.NewInt(0)
+			errorType := UnknownError
+			if minAmount != nil && transferredAmount.Cmp(minAmount) < 0 {
+				errorType = AmountTooLow
+				amount = minAmount
+			} else if maxAmount != nil && transferredAmount.Cmp(maxAmount) > 0 {
+				errorType = AmountTooHigh
+				amount = maxAmount
+			}
+
+			return &APIErrorPayload{
+				Type:    errorType,
+				Subtype: TokenAmount,
+				Amount:  amount.String(),
+				Message: filteredOutReason,
+			}
+		}
+	}
+
+	// check Price impact errors
+	// format: Price impact of (X)% is higher than the max allowed (Y)%
+	re = regexp.MustCompile(`Price impact of (\d+(\.\d+)?)% is higher than the max allowed (\d+(\.\d+)?)%`)
+	matches = re.FindStringSubmatch(filteredOutReason)
+	if len(matches) > 0 {
+		return &APIErrorPayload{
+			Type:    PriceImpactTooHigh,
+			Subtype: PriceImpact,
+			Amount:  matches[1] + "%",
+			Message: filteredOutReason,
+		}
+	}
+
+	if strings.Contains(filteredOutReason, "insufficient") {
+		return &APIErrorPayload{
+			Type:    AmountTooLow,
+			Subtype: USD,
+			Amount:  "1",
+			Message: filteredOutReason,
+		}
+	}
+
 	return &APIErrorPayload{
-		Type: UnknownError,
+		Type:    UnknownError,
+		Message: filteredOutReason,
 	}
 }
