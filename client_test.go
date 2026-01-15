@@ -10,7 +10,7 @@ import (
 
 func createClient() *Client {
 	c := Config{
-		APIKey:   "31371ea0-d8d5-4393-bbc7-2d6cb604dc44.cbc48dd8-cd4a-45d3-87e5-de70fe400f91",
+		APIKey:   "",
 		BaseURL:  "https://li.quest",
 		Timeout:  30 * time.Second,
 		ProxyURL: "http://127.0.0.1:7897",
