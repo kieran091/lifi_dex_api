@@ -96,14 +96,25 @@ func (e *APIError) Cause() error {
 }
 
 func parseErrorResponse(errs *Errors) *APIErrorPayload {
-	if errs == nil || len(errs.FilteredOut) == 0 {
+	if errs == nil {
 		return &APIErrorPayload{
-			Type:    AmountTooLow,
-			Subtype: USD,
-			Amount:  "1",
-			Message: "amount too low",
+			Type:    UnknownError,
+			Message: "unknown error",
 		}
 	}
+
+	if len(errs.FilteredOut) == 0 && len(errs.Failed) != 0 {
+		subpaths := errs.Failed[0].Subpaths
+		for _, v := range subpaths {
+			subpath := v[0]
+			return &APIErrorPayload{
+				Type:    subpath.ErrorType,
+				Subtype: subpath.Code,
+				Message: fmt.Sprintf("%s: %s", subpath.Tool, subpath.Message),
+			}
+		}
+	}
+
 	filteredOutReason := errs.FilteredOut[0].Reason
 
 	if filteredOutReason == multiSignatureErrorMessage {

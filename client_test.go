@@ -44,11 +44,14 @@ func TestClient_AdvancedRoutes(t *testing.T) {
 	client := createClient()
 
 	advancedRoutesRequest := &AdvancedRoutesRequest{
-		FromChainId:      1,
-		FromAmount:       "100000000000000000000000000000000000000000000000000",
+		FromChainId:      56,
+		FromAmount:       "10000000000000000000",
 		FromTokenAddress: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-		ToChainId:        56,
-		ToTokenAddress:   "0x43c934a845205f0b514417d757d7235b8f53f1b9",
+		ToChainId:        1151111081099710,
+		ToTokenAddress:   "11111111111111111111111111111111",
+		Options: RouteOptions{
+			Slippage: 0.1,
+		},
 	}
 	advancedRoutesResponse, err := client.AdvancedRoutes(advancedRoutesRequest)
 	if err != nil {
@@ -67,13 +70,13 @@ func TestClient_Quote(t *testing.T) {
 	client := createClient()
 
 	quoteRequest := &QuoteRequest{
-		FromChain:   "1",
-		ToChain:     "56",
+		FromChain:   "56",
+		ToChain:     "1151111081099710",
 		FromToken:   "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-		ToToken:     "0x43c934a845205f0b514417d757d7235b8f53f1b9",
+		ToToken:     "11111111111111111111111111111111",
 		FromAddress: "0xb6789347ff8231f06f3101461d97b22f238a3019",
-		ToAddress:   "0xb6789347ff8231f06f3101461d97b22f238a3019",
-		FromAmount:  "1000",
+		ToAddress:   "EQP4rTKZG2LRd5QBsSQLdCbLKjE6k3kYBf6xas6pVLfM",
+		FromAmount:  "1000000000000000",
 		Order:       "FASTEST",
 		Slippage:    0.005,
 	}
